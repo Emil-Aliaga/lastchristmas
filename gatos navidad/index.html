@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Last Christmas · Cat Edition</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 0%,#263952,#141d2b 65%);font:15px 'Segoe UI',Arial,sans-serif;color:#f3f5f7;padding:20px}main{width:min(640px,100%)}.window{background:#f0f0f0;color:#161616;box-shadow:0 20px 60px #0006;border:1px solid #b9c8d2;border-radius:8px;overflow:hidden}.bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;font-size:14px;border-bottom:1px solid #ddd}.content{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:24px;align-items:center;padding:24px;min-height:268px}.photo{width:100%;aspect-ratio:1;display:grid;place-items:center;background:#e2e5e6;border-radius:3px;overflow:hidden}.photo img{width:100%;height:100%;object-fit:contain;display:block}.lyric{text-align:center;font-size:clamp(16px,4vw,23px);line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 20px 20px}.actions button{min-width:0;padding:9px 12px;border:1px solid #8b9fb4;background:#fafafa;border-radius:3px;cursor:pointer;font:inherit;color:#181818}.actions button:disabled{opacity:.5;cursor:default}button:focus-visible{outline:2px solid #62aaff;outline-offset:3px}@media(max-width:480px){.content{gap:14px;padding:16px;min-height:190px;grid-template-columns:45% minmax(0,1fr)}.actions{padding-bottom:16px}.bar{font-size:13px}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body><main>
+<section class="window" aria-label="Karaoke navideño">
+<div class="bar"><span>Last Christmas - WHAM!</span></div>
+<div class="content"><div class="photo"><img id="photo" src="gato.jpg" alt="Meme de gato navideño" onerror="this.hidden=true" onload="this.hidden=false"></div><div id="lyric" class="lyric" aria-live="off">¡Feliz Navidad! 🎄</div></div>
+<div class="actions"><button id="play" disabled>▶ Reproducir</button><button id="pause" disabled>Ⅱ Pausar</button><button id="restart" disabled>Reiniciar</button></div>
+</section>
+<audio id="audio" preload="metadata"></audio>
+</main>
+<script>
+'use strict';
+// Configuración para publicar junto a los archivos (nombres exactos).
+const AUDIO = 'lastchristmas.mp3';
+const LRC = 'lastchristmas.lrc';
+const CANTIDAD_MEMES = 65; // Busca memes desde gato1 hasta gato65.
+const EXTENSIONES = ['jpg','jpeg','png','gif','webp'];
+const $ = id => document.getElementById(id);
+const audio=$('audio'), photo=$('photo'), lyric=$('lyric'), play=$('play'), pause=$('pause'), restart=$('restart');
+const AJUSTE_MS = 0;
+let lines=[], memes=[], last=-2, ready=false, frame=0;
+function real(text){
+  const words=text.toLowerCase().replace(/[^a-z\s]/g,' ').trim().split(/\s+/).filter(Boolean);
+  const vocal=/^(?:a+h*|o+h*|wo+a+h*|who+a+h*|ye+a+h*|u+h+|h+m+|m+m+|la+|na+|hey+)$/;
+  return words.filter(w=>!vocal.test(w)).length>=2;
+}
+function parseLrc(s){
+  const out=[]; const off=Number((s.match(/\[offset:\s*([+-]?\d+)\s*\]/i)||[])[1]||0);
+  for(const row of s.split(/\r?\n/)){
+    const tags=[...row.matchAll(/\[(\d+):(\d+(?:[.:]\d+)?)\]/g)];
+    const text=row.replace(/\[\d+:\d+(?:[.:]\d+)?\]/g,'').trim();
+    for(const t of tags)out.push({time:+t[1]*60+Number(t[2].replace(':','.'))+off/1000,text});
+  }
+  out.sort((a,b)=>a.time-b.time);
+  let idx=-1; for(const item of out){if(real(item.text))idx++;item.meme=Math.max(0,idx);}
+  return out;
+}
+function loadImage(src){return new Promise(resolve=>{const i=new Image();i.onload=()=>resolve(src);i.onerror=()=>resolve(null);i.src=src;});}
+async function findImage(n){for(const ext of EXTENSIONES){const src=await loadImage('gato'+n+'.'+ext);if(src)return src;}return null;}
+function configure(source,text,images){
+  const parsed=parseLrc(text);if(!parsed.length)throw Error('El LRC no contiene marcas de tiempo.');if(!images.length)throw Error('No se encontraron imágenes válidas.');
+  lines=parsed;memes=images;photo.src=memes[0];lyric.textContent='¡Feliz Navidad! 🎄';last=-2;
+  audio.src=source;audio.load();ready=true;play.disabled=restart.disabled=false;pause.disabled=true;
+}
+async function hosted(){
+  try{
+    const r=await fetch(LRC);
+    if(!r.ok)throw Error('No se encontró '+LRC);
+    const text=await r.text();
+    const images=(await Promise.all(Array.from({length:CANTIDAD_MEMES},(_,i)=>findImage(i+1)))).filter(Boolean);
+    if(!images.length){const original=await loadImage('gato.jpg');if(original)images.push(original);}
+    configure(encodeURI(AUDIO),text,images);
+  }catch(e){console.error('Error de carga:',e);}
+}
+function render(){
+  if(!ready)return;const t=audio.currentTime-AJUSTE_MS/1000;
+  let a=0,b=lines.length;while(a<b){const m=(a+b)>>1;if(lines[m].time<=t)a=m+1;else b=m;}const idx=a-1;
+  if(idx!==last){last=idx;lyric.textContent=idx<0?'':lines[idx].text;const src=memes[(idx<0?0:lines[idx].meme)%memes.length];if(photo.getAttribute('src')!==src)photo.src=src;}
+}
+function tick(){render();if(!audio.paused&&!audio.ended)frame=requestAnimationFrame(tick);}
+play.onclick=()=>{if(!ready)return;if(audio.ended)audio.currentTime=0;audio.play().catch(e=>{console.error('No se pudo reproducir el audio:',e);});};
+pause.onclick=()=>{if(ready)audio.pause();};
+function rewind(){audio.pause();if(ready)audio.currentTime=0;last=-2;render();}
+restart.onclick=()=>{rewind();if(ready)audio.play().catch(()=>{console.error('No se pudo reiniciar el audio.');});};
+audio.addEventListener('play',()=>{play.disabled=true;pause.disabled=false;cancelAnimationFrame(frame);tick();});
+audio.addEventListener('pause',()=>{play.disabled=!ready;pause.disabled=true;cancelAnimationFrame(frame);render();});
+audio.addEventListener('ended',()=>{play.disabled=!ready;pause.disabled=true;lyric.textContent='¡Feliz Navidad! 🎄';});
+audio.addEventListener('error',()=>{console.error('No se pudo cargar el audio:',audio.error);play.disabled=pause.disabled=restart.disabled=true;});
+audio.addEventListener('seeked',render);audio.addEventListener('timeupdate',render);
+hosted();
+</script></body></html>
