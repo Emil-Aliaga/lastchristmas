@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Last Christmas · Cat Edition</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 0%,#263952,#141d2b 65%);font:15px 'Segoe UI',Arial,sans-serif;color:#f3f5f7;padding:20px}main{width:min(640px,100%)}.window{background:#f0f0f0;color:#161616;box-shadow:0 20px 60px #0006;border:1px solid #b9c8d2;border-radius:8px;overflow:hidden}.bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;font-size:14px;border-bottom:1px solid #ddd}.content{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:24px;align-items:center;padding:24px;min-height:268px}.photo{width:100%;aspect-ratio:1;display:grid;place-items:center;background:#e2e5e6;border-radius:3px;overflow:hidden}.photo img{width:100%;height:100%;object-fit:contain;display:block}.lyric{text-align:center;font-size:clamp(16px,4vw,23px);line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 20px 20px}.actions button{min-width:0;padding:9px 12px;border:1px solid #8b9fb4;background:#fafafa;border-radius:3px;cursor:pointer;font:inherit;color:#181818}.actions button:disabled{opacity:.5;cursor:default}button:focus-visible{outline:2px solid #62aaff;outline-offset:3px}@media(max-width:480px){.content{gap:14px;padding:16px;min-height:190px;grid-template-columns:45% minmax(0,1fr)}.actions{padding-bottom:16px}.bar{font-size:13px}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 0%,#263952,#141d2b 65%);font:15px 'Segoe UI',Arial,sans-serif;color:#f3f5f7;padding:20px}main{width:min(640px,100%)}.window{background:#f0f0f0;color:#161616;box-shadow:0 20px 60px #0006;border:1px solid #b9c8d2;border-radius:8px;overflow:hidden}.bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;font-size:14px;border-bottom:1px solid #ddd}.content{display:grid;grid-template-columns:minmax(0,min(40%,220px)) minmax(0,1fr);gap:24px;align-items:center;padding:24px;min-height:268px}.photo{position:relative;min-width:0;width:100%;aspect-ratio:1;display:block;background:#e2e5e6;border-radius:3px;overflow:hidden}.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block}.lyric{text-align:center;font-size:clamp(16px,4vw,23px);line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 20px 20px}.actions button{min-width:0;padding:9px 12px;border:1px solid #8b9fb4;background:#fafafa;border-radius:3px;cursor:pointer;font:inherit;color:#181818}.actions button:disabled{opacity:.5;cursor:default}button:focus-visible{outline:2px solid #62aaff;outline-offset:3px}@media(max-width:480px){.content{gap:14px;padding:16px;min-height:190px;grid-template-columns:minmax(0,min(40%,220px)) minmax(0,1fr)}.actions{padding-bottom:16px}.bar{font-size:13px}}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -22,8 +22,8 @@
 const AUDIO = 'lastchristmas.mp3';
 const CARPETA_MEMES = 'gatos%20navidad/';
 const LRC = CARPETA_MEMES + 'lastchristmas.lrc';
-const CANTIDAD_MEMES = 65; // Busca memes desde gato1 hasta gato65.
-const EXTENSIONES = ['png','jpg','jpeg','gif','webp'];
+// Lista de archivos verificada: mismo orden y mismos nombres en cualquier dispositivo.
+const ARCHIVOS_MEMES = ["gato1.jpg","gato2.png","gato3.png","gato4.png","gato5.png","gato6.png","gato7.png","gato8.png","gato9.png","gato10.png","gato11.png","gato12.png","gato13.png","gato14.png","gato15.png","gato16.png","gato17.png","gato18.png","gato19.png","gato20.png","gato21.png","gato22.png","gato23.png","gato24.png","gato25.png","gato26.png","gato27.png","gato28.png","gato29.png","gato30.png","gato31.png","gato32.png","gato33.png","gato34.png","gato35.png","gato36.png","gato37.png","gato38.png","gato39.png","gato40.png","gato41.png","gato42.png","gato43.png"];
 const $ = id => document.getElementById(id);
 const audio=$('audio'), photo=$('photo'), lyric=$('lyric'), play=$('play'), pause=$('pause'), restart=$('restart');
 const AJUSTE_MS = 0;
@@ -45,7 +45,6 @@ function parseLrc(s){
   return out;
 }
 function loadImage(src){return new Promise(resolve=>{const i=new Image();i.onload=()=>resolve(src);i.onerror=()=>resolve(null);i.src=src;});}
-async function findImage(n){for(const ext of EXTENSIONES){const src=await loadImage(CARPETA_MEMES+'gato'+n+'.'+ext);if(src)return src;}return null;}
 function configure(source,text,images){
   const parsed=parseLrc(text);if(!parsed.length)throw Error('El LRC no contiene marcas de tiempo.');if(!images.length)throw Error('No se encontraron imágenes válidas.');
   lines=parsed;memes=images;photo.src=memes[0];lyric.textContent='¡Feliz Navidad! 🎄';last=-2;
@@ -56,8 +55,10 @@ async function hosted(){
     const r=await fetch(LRC);
     if(!r.ok)throw Error('No se encontró '+LRC);
     const text=await r.text();
-    const images=(await Promise.all(Array.from({length:CANTIDAD_MEMES},(_,i)=>findImage(i+1)))).filter(Boolean);
-    if(!images.length){const original=await loadImage(CARPETA_MEMES+'gato.jpg');if(original)images.push(original);}
+    const images=ARCHIVOS_MEMES.map(name=>CARPETA_MEMES+name);
+    // No eliminar imágenes por fallos transitorios de red: conservar su posición.
+    // Precargar los siguientes memes sin bloquear el botón de reproducción.
+    for (const src of images) loadImage(src);
     configure(encodeURI(AUDIO),text,images);
   }catch(e){console.error('Error de carga:',e);}
 }
